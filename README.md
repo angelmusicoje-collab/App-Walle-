@@ -82,7 +82,28 @@ desde tu celular conectado a la misma red Wi-Fi usando la IP que Vite muestra en
 
 ---
 
-## 4. Desplegar en Vercel
+## 4. Publicar en GitHub Pages (gratis)
+
+El repositorio ya trae el workflow `.github/workflows/deploy.yml`: cada vez que hay cambios en `main`,
+GitHub compila la app y la publica en `https://<tu-usuario>.github.io/<nombre-del-repo>/`
+(para este repo: `https://angelmusicoje-collab.github.io/App-Walle-/`).
+
+Solo hay que prepararlo **una vez**:
+
+1. En GitHub, entra al repo → **Settings → Pages** → en **Source** elige **GitHub Actions**.
+2. **Settings → Secrets and variables → Actions → New repository secret**, y crea dos:
+   - `VITE_SUPABASE_URL` → la **Project URL** de Supabase
+   - `VITE_SUPABASE_ANON_KEY` → la **anon public key** de Supabase
+3. Ve a la pestaña **Actions → Publicar en GitHub Pages → Run workflow** (o haz cualquier cambio en `main`).
+4. Cuando termine (palomita verde, ~1 minuto), abre la URL de arriba.
+
+Si abres la app y ves "WAMI aún no está conectada a su base de datos", faltan los secretos del paso 2
+(o se agregaron después de publicar: vuelve a correr el workflow).
+
+> El repo debe ser **público** para usar GitHub Pages en el plan gratuito. Los datos del negocio no
+> quedan expuestos por eso: viven en Supabase, protegidos por RLS y por el inicio de sesión.
+
+## 4b. Alternativa: desplegar en Vercel
 
 1. Sube este proyecto a un repositorio de GitHub/GitLab.
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importa el repositorio.
@@ -193,7 +214,23 @@ funciona con tus datos reales antes de usarlo en el día a día del negocio.
 
 ---
 
-## 10. Correcciones aplicadas en esta revisión
+## 10. Correcciones de la segunda revisión
+
+- **Fechas con la hora de México.** Las fechas se calculaban en UTC: de 6 pm en adelante, un gasto
+  nuevo quedaba con la fecha de mañana, la lista de gastos y de socias mostraba un día antes, y el
+  periodo "Personalizado" de Finanzas se corría 6 horas. Ahora todo usa la fecha local del celular.
+- **Editar un pedido ya no cambia sus precios.** Al editar, los productos que ya estaban en el pedido
+  conservan el precio y costo con los que se vendieron; solo los productos nuevos toman el precio
+  actual. Si ya habías corrido `1_schema.sql` en Supabase, vuelve a correr solo el bloque
+  `create or replace function public.update_order_items(...)` de ese archivo.
+- **Sin pantallas colgadas.** Si falla la conexión, Inicio y Finanzas muestran un aviso (con
+  "Reintentar" en Inicio) en vez de quedarse cargando para siempre.
+- **Sin pantalla en blanco.** Si faltan las variables de Supabase, la app lo dice en pantalla.
+- **`npm run typecheck` pasa** con las dependencias reales instaladas (había un error de tipos en
+  `getExpensesByCategory`).
+- Se agregaron `.gitignore`, `.env.example`, `package-lock.json` y la publicación en GitHub Pages.
+
+## 11. Correcciones aplicadas en la primera revisión
 
 Se revisó todo el código fuente (páginas, componentes, hooks, queries y los 4 archivos SQL) sin
 cambiar diseño, estructura, imágenes ni funcionalidades existentes. Se corrigieron 3 errores reales:
