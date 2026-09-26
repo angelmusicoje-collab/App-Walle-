@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TopBar, LoadingScreen, EmptyState } from '../components/ui'
 import { supabase } from '../lib/supabase'
-import { formatMoney, formatDateTime, downloadCSV } from '../lib/format'
+import { formatMoney, formatDateTime, downloadCSV, toLocalDateString } from '../lib/format'
 import type { Movement } from '../types'
 
 const TYPE_LABELS: Record<Movement['type'], string> = {
@@ -31,7 +31,7 @@ export default function Movements() {
 
   function exportCSV() {
     downloadCSV(
-      `wami_movimientos_${new Date().toISOString().slice(0, 10)}.csv`,
+      `wami_movimientos_${toLocalDateString()}.csv`,
       filtered.map((m) => ({
         fecha: m.at,
         tipo: m.type,

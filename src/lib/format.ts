@@ -4,7 +4,9 @@ export function formatMoney(amount: number | null | undefined, currency = 'MXN')
 }
 
 export function formatDate(iso: string) {
-  const d = new Date(iso)
+  // Las columnas tipo date llegan como 'YYYY-MM-DD'; new Date() las leería como
+  // medianoche UTC y en México se mostrarían como el día anterior.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? parseLocalDate(iso) : new Date(iso)
   return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).format(d)
 }
 
@@ -52,6 +54,24 @@ export function downloadCSV(filename: string, rows: Record<string, unknown>[]) {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+/**
+ * Fecha 'YYYY-MM-DD' según la hora local del celular.
+ * No usar toISOString().slice(0, 10): esa es la fecha en UTC, y en México
+ * después de las 6 de la tarde ya marca el día siguiente.
+ */
+export function toLocalDateString(d: Date = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Convierte 'YYYY-MM-DD' en la medianoche local de ese día (new Date('YYYY-MM-DD') la toma en UTC). */
+export function parseLocalDate(ymd: string) {
+  const [y, m, d] = ymd.split('-').map(Number)
+  return new Date(y, m - 1, d)
 }
 
 export function startOfToday() {

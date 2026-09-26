@@ -5,6 +5,7 @@ import { PhotoField } from '../components/PhotoField'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useExpenseCategories } from '../hooks/useSettings'
+import { toLocalDateString } from '../lib/format'
 import { PAYMENT_LABELS } from '../types'
 import type { Expense, PaymentMethod } from '../types'
 
@@ -17,7 +18,7 @@ export default function ExpenseForm() {
   const { user } = useAuth()
   const { categories } = useExpenseCategories()
 
-  const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [expenseDate, setExpenseDate] = useState(() => toLocalDateString())
   const [concept, setConcept] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')

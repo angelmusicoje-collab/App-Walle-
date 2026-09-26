@@ -296,6 +296,9 @@ end;
 $$;
 
 -- Reemplaza los items de una orden existente (usado al editar un pedido).
+-- Los productos que ya estaban en el pedido conservan su precio/costo de la
+-- venta original; solo los productos nuevos toman el precio actual. Así,
+-- editar un pedido viejo no lo "re-cobra" con los precios de hoy.
 create or replace function public.update_order_items(
   p_order_id uuid,
   p_items jsonb
@@ -307,15 +310,38 @@ as $$
 declare
   v_item jsonb;
   v_product record;
+  v_old jsonb;
+  v_prev jsonb;
 begin
   if p_items is null or jsonb_array_length(p_items) = 0 then
     raise exception 'El pedido debe tener al menos un producto';
   end if;
 
+  select coalesce(jsonb_object_agg(product_id::text, jsonb_build_object(
+           'name', product_name_snapshot,
+           'price', unit_price_snapshot,
+           'cost', unit_cost_snapshot)), '{}'::jsonb)
+  into v_old
+  from public.order_items
+  where order_id = p_order_id and product_id is not null;
+
   delete from public.order_items where order_id = p_order_id;
 
   for v_item in select * from jsonb_array_elements(p_items)
   loop
+    v_prev := v_old -> (v_item->>'product_id');
+
+    if v_prev is not null then
+      insert into public.order_items
+        (order_id, product_id, product_name_snapshot, unit_price_snapshot, unit_cost_snapshot, quantity)
+      values (
+        p_order_id, (v_item->>'product_id')::uuid, v_prev->>'name',
+        (v_prev->>'price')::numeric, (v_prev->>'cost')::numeric,
+        (v_item->>'quantity')::numeric
+      );
+      continue;
+    end if;
+
     select id, name, sale_price, total_cost into v_product
     from public.products
     where id = (v_item->>'product_id')::uuid;

@@ -3,7 +3,7 @@ import { TopBar, Card, Banner, showToast } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfiles } from '../hooks/useSettings'
-import { formatMoney, formatDate } from '../lib/format'
+import { formatMoney, formatDate, toLocalDateString } from '../lib/format'
 import type { Contribution, Withdrawal } from '../types'
 
 type MovType = 'aportacion' | 'retiro'
@@ -56,6 +56,7 @@ export default function Partners() {
       const { error: insErr } = await supabase.from(table).insert({
         partner_id: partnerId,
         amount: amt,
+        movement_date: toLocalDateString(),
         note: note.trim() || null,
         created_by: user?.id ?? null
       })

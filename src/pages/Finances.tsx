@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
-import { TopBar, Card, LoadingScreen } from '../components/ui'
+import { TopBar, Card, LoadingScreen, Banner } from '../components/ui'
 import { useBusinessSettings } from '../hooks/useSettings'
 import { getPeriodTotals, type PeriodTotals } from '../lib/queries'
-import { formatMoney, startOfToday, startOfWeek, startOfMonth, startOfPrevMonth, endOfPrevMonth } from '../lib/format'
+import {
+  formatMoney,
+  startOfToday,
+  startOfMonth,
+  startOfPrevMonth,
+  endOfPrevMonth,
+  toLocalDateString,
+  parseLocalDate
+} from '../lib/format'
 
 type Period = 'hoy' | '7dias' | 'mes' | 'mes_anterior' | 'personalizado'
 
@@ -17,10 +25,11 @@ const PERIODS: { key: Period; label: string }[] = [
 export default function Finances() {
   const { settings } = useBusinessSettings()
   const [period, setPeriod] = useState<Period>('mes')
-  const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().slice(0, 10))
-  const [customTo, setCustomTo] = useState(() => new Date().toISOString().slice(0, 10))
+  const [customFrom, setCustomFrom] = useState(() => toLocalDateString())
+  const [customTo, setCustomTo] = useState(() => toLocalDateString())
   const [totals, setTotals] = useState<PeriodTotals | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     load()
@@ -30,21 +39,29 @@ export default function Finances() {
     const now = new Date()
     if (p === 'hoy') return [startOfToday(), now]
     if (p === '7dias') {
-      const d = new Date()
-      d.setDate(d.getDate() - 7)
+      // Hoy más los 6 días anteriores, completos.
+      const d = startOfToday()
+      d.setDate(d.getDate() - 6)
       return [d, now]
     }
     if (p === 'mes') return [startOfMonth(), now]
     if (p === 'mes_anterior') return [startOfPrevMonth(), endOfPrevMonth()]
-    return [new Date(customFrom), new Date(new Date(customTo).getTime() + 86400000)]
+    const end = parseLocalDate(customTo)
+    end.setDate(end.getDate() + 1)
+    return [parseLocalDate(customFrom), end]
   }
 
   async function load() {
     setLoading(true)
-    const [from, to] = rangeFor(period)
-    const t = await getPeriodTotals(from, to)
-    setTotals(t)
-    setLoading(false)
+    setError(null)
+    try {
+      const [from, to] = rangeFor(period)
+      setTotals(await getPeriodTotals(from, to))
+    } catch {
+      setError('No se pudieron calcular las finanzas. Revisa tu conexión e intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const currency = settings?.currency ?? 'MXN'
@@ -74,7 +91,9 @@ export default function Finances() {
           </div>
         )}
 
-        {loading || !totals ? (
+        {error ? (
+          <Banner kind="error">{error}</Banner>
+        ) : loading || !totals ? (
           <LoadingScreen label="Calculando…" />
         ) : (
           <>

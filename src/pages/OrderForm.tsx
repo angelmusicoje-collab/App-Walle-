@@ -72,15 +72,14 @@ export default function OrderForm() {
     setItems(
       (data.order_items ?? []).map((it: { product_id: string; quantity: number; unit_price_snapshot: number; product_name_snapshot: string }) => {
         const p = prodMap.get(it.product_id)
+        // Mostramos el precio con el que se vendió (snapshot), que es el que
+        // update_order_items conserva al guardar, no el precio actual.
         return {
-          product:
-            p ??
-            ({
-              id: it.product_id,
-              name: it.product_name_snapshot,
-              sale_price: it.unit_price_snapshot,
-              total_cost: 0
-            } as Product),
+          product: {
+            ...(p ?? ({ id: it.product_id, total_cost: 0 } as Product)),
+            name: it.product_name_snapshot,
+            sale_price: it.unit_price_snapshot
+          },
           quantity: it.quantity
         }
       })

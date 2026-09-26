@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { toLocalDateString } from './format'
 
 export interface PeriodTotals {
   sales: number
@@ -32,12 +33,27 @@ async function ordersTotals(fromISO: string, toISO: string) {
   return { sales, cogs, orderCount: (data ?? []).length }
 }
 
-async function sumTable(table: 'expenses' | 'contributions' | 'withdrawals', dateCol: string, fromISO: string, toISO: string) {
+/**
+ * Rango [from, to) expresado como fechas locales, para columnas tipo date
+ * (expense_date, movement_date). Si `to` no cae justo en medianoche (por
+ * ejemplo "ahora"), el día de `to` también cuenta.
+ */
+function localDateRange(from: Date, to: Date) {
+  const end = new Date(to)
+  if (end.getHours() || end.getMinutes() || end.getSeconds() || end.getMilliseconds()) {
+    end.setHours(0, 0, 0, 0)
+    end.setDate(end.getDate() + 1)
+  }
+  return { fromDate: toLocalDateString(from), toDate: toLocalDateString(end) }
+}
+
+async function sumTable(table: 'expenses' | 'contributions' | 'withdrawals', dateCol: string, from: Date, to: Date) {
+  const { fromDate, toDate } = localDateRange(from, to)
   const { data, error } = await supabase
     .from(table)
     .select('amount')
-    .gte(dateCol, fromISO)
-    .lt(dateCol, toISO)
+    .gte(dateCol, fromDate)
+    .lt(dateCol, toDate)
     .eq('status', 'activo')
   if (error) throw error
   return (data ?? []).reduce((acc: number, r: { amount: number }) => acc + Number(r.amount), 0)
@@ -48,9 +64,9 @@ export async function getPeriodTotals(from: Date, to: Date): Promise<PeriodTotal
   const toISO = to.toISOString()
   const [{ sales, cogs, orderCount }, expenses, contributions, withdrawals] = await Promise.all([
     ordersTotals(fromISO, toISO),
-    sumTable('expenses', 'expense_date', fromISO, toISO),
-    sumTable('contributions', 'movement_date', fromISO, toISO),
-    sumTable('withdrawals', 'movement_date', fromISO, toISO)
+    sumTable('expenses', 'expense_date', from, to),
+    sumTable('contributions', 'movement_date', from, to),
+    sumTable('withdrawals', 'movement_date', from, to)
   ])
   const profit = sales - cogs - expenses
   const cashAvailable = sales + contributions - expenses - withdrawals
@@ -93,6 +109,7 @@ export async function getSalesByDay(from: Date, to: Date) {
     .gte('created_at', from.toISOString())
     .lt('created_at', to.toISOString())
     .neq('status', 'cancelado')
+    .order('created_at')
   if (error) throw error
   const map = new Map<string, number>()
   for (const o of data ?? []) {
@@ -103,16 +120,19 @@ export async function getSalesByDay(from: Date, to: Date) {
 }
 
 export async function getExpensesByCategory(from: Date, to: Date) {
+  const { fromDate, toDate } = localDateRange(from, to)
   const { data, error } = await supabase
     .from('expenses')
     .select('amount, expense_categories(name, emoji)')
-    .gte('expense_date', from.toISOString())
-    .lt('expense_date', to.toISOString())
+    .gte('expense_date', fromDate)
+    .lt('expense_date', toDate)
     .eq('status', 'activo')
   if (error) throw error
   const map = new Map<string, number>()
   for (const e of data ?? []) {
-    const cat = (e.expense_categories as { name: string } | null)?.name ?? 'Otros'
+    // supabase-js tipa la relación como arreglo, pero expenses -> expense_categories es muchos-a-uno
+    // y en tiempo de ejecución llega un solo objeto (o null).
+    const cat = (e.expense_categories as unknown as { name: string } | null)?.name ?? 'Otros'
     map.set(cat, (map.get(cat) ?? 0) + Number(e.amount))
   }
   return Array.from(map.entries()).map(([name, total]) => ({ name, total }))

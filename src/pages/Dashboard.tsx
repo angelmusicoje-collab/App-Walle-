@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { TopBar, LoadingScreen, Card } from '../components/ui'
+import { TopBar, LoadingScreen, Card, Banner } from '../components/ui'
 import { FabButtons } from '../components/FabButtons'
 import { useAuth } from '../contexts/AuthContext'
 import { useBusinessSettings } from '../hooks/useSettings'
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const { profile } = useAuth()
   const { settings } = useBusinessSettings()
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [today, setToday] = useState<PeriodTotals | null>(null)
   const [week, setWeek] = useState<PeriodTotals | null>(null)
   const [month, setMonth] = useState<PeriodTotals | null>(null)
@@ -36,6 +37,7 @@ export default function Dashboard() {
 
   async function load() {
     setLoading(true)
+    setError(null)
     try {
       const now = new Date()
       const todayStart = startOfToday()
@@ -64,6 +66,8 @@ export default function Dashboard() {
       setTopProduct(tp?.name ?? null)
       setSalesByDay(sbd)
       setExpensesByCat(ebc)
+    } catch {
+      setError('No se pudo cargar la información. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -71,7 +75,22 @@ export default function Dashboard() {
 
   const currency = settings?.currency ?? 'MXN'
 
-  if (loading || !today) return <LoadingScreen label="Cargando el dashboard…" />
+  if (loading) return <LoadingScreen label="Cargando el dashboard…" />
+
+  if (error || !today) {
+    return (
+      <div>
+        <TopBar title="Inicio" />
+        <div className="page">
+          <Banner kind="error">{error ?? 'No se pudo cargar la información.'}</Banner>
+          <button className="btn btn-primary" onClick={load}>
+            Reintentar
+          </button>
+        </div>
+        <FabButtons />
+      </div>
+    )
+  }
 
   const salesDelta = pctChange(today.sales, yesterday?.sales ?? 0)
 

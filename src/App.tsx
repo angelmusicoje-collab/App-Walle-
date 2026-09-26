@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { isSupabaseConfigured } from './lib/supabase'
 import { LoadingScreen } from './components/ui'
 import { BottomNav } from './components/BottomNav'
 import { ConfirmDialogHost, ToastHost } from './components/ui'
@@ -26,8 +27,25 @@ function Protected({ children }: { children: JSX.Element }) {
   return children
 }
 
+function MissingConfig() {
+  return (
+    <div className="page" style={{ paddingTop: 48 }}>
+      <div className="empty-state">
+        <div className="empty-icon">🔌</div>
+        <p className="empty-title">WAMI aún no está conectada a su base de datos</p>
+        <p className="empty-subtitle">
+          Faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. En tu computadora van en el archivo .env; en GitHub
+          Pages, en Settings → Secrets and variables → Actions. Los pasos están en el README.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const { session, loading } = useAuth()
+
+  if (!isSupabaseConfigured) return <MissingConfig />
 
   if (loading) return <LoadingScreen label="Entrando a WAMI…" />
 
