@@ -1,0 +1,13 @@
+services:
+  wami:
+    build:
+      context: .
+      args:
+        # Se leen del archivo .env que está junto a este docker-compose.yml.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    container_name: wami
+    restart: unless-stopped
+    ports:
+      # 8081 para no chocar con GTA-EVE, que usa 8080 en el mismo VPS.
+      - "8081:80"

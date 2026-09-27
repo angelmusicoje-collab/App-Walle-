@@ -34,8 +34,8 @@ function MissingConfig() {
         <div className="empty-icon">🔌</div>
         <p className="empty-title">WAMI aún no está conectada a su base de datos</p>
         <p className="empty-subtitle">
-          Faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. En tu computadora van en el archivo .env; en GitHub
-          Pages, en Settings → Secrets and variables → Actions. Los pasos están en el README.
+          Faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY al compilar. En el VPS van en Environment de EasyPanel
+          o en el archivo .env; después hay que volver a compilar. Los pasos están en el README.
         </p>
       </div>
     </div>

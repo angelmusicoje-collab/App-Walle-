@@ -1,4 +1,5 @@
-# Publica WAMI en GitHub Pages cada vez que hay cambios en main.
+# Publica WAMI en GitHub Pages. Es opcional (la app vive en el VPS, ver README),
+# así que solo corre a mano: Actions -> Publicar en GitHub Pages -> Run workflow.
 # Antes de la primera vez:
 #   1. Settings -> Pages -> Source: "GitHub Actions".
 #   2. Settings -> Secrets and variables -> Actions -> New repository secret:
@@ -6,8 +7,6 @@
 name: Publicar en GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

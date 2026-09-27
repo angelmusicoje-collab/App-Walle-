@@ -82,19 +82,45 @@ desde tu celular conectado a la misma red Wi-Fi usando la IP que Vite muestra en
 
 ---
 
-## 4. Publicar en GitHub Pages (gratis)
+## 4. Montarla en tu VPS (Docker)
 
-El repositorio ya trae el workflow `.github/workflows/deploy.yml`: cada vez que hay cambios en `main`,
-GitHub compila la app y la publica en `https://<tu-usuario>.github.io/<nombre-del-repo>/`
-(para este repo: `https://angelmusicoje-collab.github.io/App-Walle-/`).
+El repo trae `Dockerfile` (compila la app y la sirve con nginx), `nginx.conf` y `docker-compose.yml`.
 
-Solo hay que prepararlo **una vez**:
+Las claves de Supabase se usan **al compilar**, no al arrancar: si las cambias, hay que volver a
+compilar (Deploy / `--build`). Si al abrir la app ves "WAMI aún no está conectada a su base de datos",
+es que la imagen se compiló sin ellas.
+
+**Con EasyPanel** (igual que GTA-EVE):
+
+1. Crea una **App**, conecta este repositorio, rama `main`, método **Dockerfile**.
+2. En **Environment** agrega `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+3. Expón el puerto interno **80**, asigna el dominio, activa HTTPS y dale **Deploy**.
+
+**A mano en el VPS:**
+
+```bash
+git clone https://github.com/angelmusicoje-collab/App-Walle-.git wami
+cd wami
+cp .env.example .env      # y pon tus datos de Supabase
+docker compose up -d --build
+```
+
+Queda en el puerto **8081** (el 8080 ya lo usa GTA-EVE). Para actualizar: `git pull && docker compose up -d --build`.
+
+**HTTPS es obligatorio en producción**: sin él, el celular no ofrece "Instalar app" ni "Agregar a
+pantalla de inicio" como app independiente. EasyPanel lo activa solo; a mano, pon un proxy con certificado (Caddy, nginx +
+certbot, etc.) delante del puerto 8081.
+
+## 4b. Opcional: GitHub Pages
+
+El workflow `.github/workflows/deploy.yml` publica la app en
+`https://angelmusicoje-collab.github.io/App-Walle-/`. Solo corre a mano. Para usarlo, una vez:
 
 1. En GitHub, entra al repo → **Settings → Pages** → en **Source** elige **GitHub Actions**.
 2. **Settings → Secrets and variables → Actions → New repository secret**, y crea dos:
    - `VITE_SUPABASE_URL` → la **Project URL** de Supabase
    - `VITE_SUPABASE_ANON_KEY` → la **anon public key** de Supabase
-3. Ve a la pestaña **Actions → Publicar en GitHub Pages → Run workflow** (o haz cualquier cambio en `main`).
+3. Ve a la pestaña **Actions → Publicar en GitHub Pages → Run workflow**.
 4. Cuando termine (palomita verde, ~1 minuto), abre la URL de arriba.
 
 Si abres la app y ves "WAMI aún no está conectada a su base de datos", faltan los secretos del paso 2
@@ -103,7 +129,7 @@ Si abres la app y ves "WAMI aún no está conectada a su base de datos", faltan 
 > El repo debe ser **público** para usar GitHub Pages en el plan gratuito. Los datos del negocio no
 > quedan expuestos por eso: viven en Supabase, protegidos por RLS y por el inicio de sesión.
 
-## 4b. Alternativa: desplegar en Vercel
+## 4c. Opcional: Vercel
 
 1. Sube este proyecto a un repositorio de GitHub/GitLab.
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importa el repositorio.
@@ -228,7 +254,8 @@ funciona con tus datos reales antes de usarlo en el día a día del negocio.
 - **Sin pantalla en blanco.** Si faltan las variables de Supabase, la app lo dice en pantalla.
 - **`npm run typecheck` pasa** con las dependencias reales instaladas (había un error de tipos en
   `getExpensesByCategory`).
-- Se agregaron `.gitignore`, `.env.example`, `package-lock.json` y la publicación en GitHub Pages.
+- Se agregaron `.gitignore`, `.env.example`, `package-lock.json`, el `Dockerfile` para el VPS y la
+  publicación opcional en GitHub Pages.
 
 ## 11. Correcciones aplicadas en la primera revisión
 
